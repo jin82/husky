@@ -1,6 +1,7 @@
 package jin.study.husky.bean;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.Map;
 
 /**
@@ -13,50 +14,92 @@ import java.util.Map;
  */
 public class BeanOperation {
 
+	/**
+	 * 操作的根BEAN
+	 */
+	private Object rootBean;
+
+	private String className;
+
+	private Class<?> clazz ;
+
+	/**
+	 * 当前操作的BEAN
+	 */
 	private Object sourceBean;
 
 	private Map<String,String> properties;
 
-
 	private Object resultBean = null;
 
-	public BeanOperation(Object sourceBean,Map<String,String> properties){
-		this.sourceBean = sourceBean;
+	public FieldOperation fieldOperation = new FieldOperation();
+
+	public BeanOperation(String className,Map<String,String> properties){
+		this.className = className;
 		this.properties = properties;
+		try {
+			this.clazz = Class.forName(className);
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException("没有找到这个类 -> "+className);
+		}
 	}
 
+
+	/**
+	 * 将数据注入BEAN
+	 */
 	private void handleBean(){
+		try {
+			rootBean = this.clazz.newInstance();
+		} catch (InstantiationException | IllegalAccessException e) {
+			throw new RuntimeException("实例化出错 -> " + clazz);
+		}
 		properties.forEach(this::sztSingleField);
 		resultBean = sourceBean;
 	}
 
+	/**
+	 * 设置单个field的值
+	 * @param property field名称
+	 * @param value 值
+	 */
 	private void sztSingleField(String property,String value){
 		String keys[] = property.split("\\.");
 		if(keys.length == 0){
-			throw new RuntimeException("属性名称错误");
+			throw new RuntimeException("属性名称错误 ");
 		}
-		try{
-			for (int i = 0; i < keys.length; i++) {
-				String key = keys[i];
-				if(i == 0){
-					continue;
-				}
+
+		for (int i = 0; i < keys.length; i++) {
+			String key = keys[i];
+
+			if(i == 0){
+				sourceBean = rootBean; //当前操作的bean初始化为根bean
+				continue;
+			}
+			try{
+				fieldOperation.build(key);
 				//最后一个
 				if(i == keys.length -1){
-					Class<?> clazz = sourceBean.getClass();
-					FieldOperation fieldOperation = new FieldOperation(clazz);
-					Method setterMethod = fieldOperation.build(key).setterMethod();
-					setterMethod.invoke(sourceBean,value);
-				}
+					Method setterMethod = fieldOperation.setterMethod();
 
+					setterMethod.invoke(sourceBean,fieldOperation.valueFactory(value));
+				}else{
+					Object nextBean = fieldOperation.getterMethod().invoke(sourceBean);
+					if(nextBean == null){
+						String className = fieldOperation.gztFieldType().getName();
+						nextBean = Class.forName(className).newInstance();
+						fieldOperation.setterMethod().invoke(sourceBean,nextBean);
+					}
+					sourceBean = nextBean;
+				}
+			}catch (Exception e){
+				throw new RuntimeException("属性值设置错误，调用 -> " + key +", e ->" + e);
 			}
-		}catch (Exception e){
-			e.printStackTrace();
+
 		}
 
+
 	}
-
-
 
 	/**
 	 * 将属性设置在对象上，并返回对象
@@ -69,51 +112,83 @@ public class BeanOperation {
 		return resultBean;
 	}
 
+	/**
+	 * field控制器
+	 */
 	private class FieldOperation{
-		private Class<?> clazz ;
 
 		private String fieldName;
-
-		public FieldOperation(Class<?> clazz) {
-			this.clazz = clazz;
-		}
 
 		public FieldOperation build(String fieldName){
 			this.fieldName = fieldName;
 			return this;
 		}
 
+		/**
+		 * 得到当前的getter方法
+		 * @return getter方法
+		 */
 		private Method getterMethod(){
 			try{
 				String methodName = "get" + toUpperCaseFirst(fieldName);
-				return clazz.getDeclaredMethod(methodName);
+				return sourceBean.getClass().getDeclaredMethod(methodName);
 			}catch (NoSuchMethodException e){
 				e.printStackTrace();
 				throw new RuntimeException();
 			}
 		}
 
+		/**
+		 * 得到数据类型
+		 * @return 数据类型
+		 */
 		private Class<?> gztFieldType(){
 			try {
-				return clazz.getDeclaredField(fieldName).getType();
+				return sourceBean.getClass().getDeclaredField(fieldName).getType();
 			} catch (NoSuchFieldException e) {
-				e.printStackTrace();
-				throw new RuntimeException();
+				throw new RuntimeException("没有 "+ fieldName+ "此field");
 			}
 		}
 
+		/**
+		 * 得到当前的setter方法
+		 * @return setter方法
+		 */
 		private Method setterMethod(){
+			String methodName = "set" + toUpperCaseFirst(fieldName);
 			try{
-				String methodName = "set" + toUpperCaseFirst(fieldName);
-				return clazz.getDeclaredMethod(methodName, new Class<?>[]{gztFieldType()});
+				return sourceBean.getClass().getDeclaredMethod(methodName, new Class<?>[]{gztFieldType()});
 			}catch (NoSuchMethodException e){
-				e.printStackTrace();
-				throw new RuntimeException();
+				throw new RuntimeException("没有 " +methodName +" 方法");
 			}
 		}
 
+		/**
+		 * 将字符串第一位变为大写
+		 * @param str 原字符串
+		 * @return 修改后的字符串
+		 */
 		private String toUpperCaseFirst(String str){
 			return str.substring(0,1).toUpperCase() + str.substring(1);
+		}
+
+		/**
+		 * 返回当前field的正确类型的值
+		 * @param value String类型的value
+		 * @return 类型直接的值
+		 */
+		private Object valueFactory(String value){
+			try {
+				Type type = gztFieldType();
+				if (type == String.class) {
+					return value;
+				} else if (type == Integer.class) {
+					return Integer.parseInt(value);
+				}
+			}catch (Exception e){
+				throw new RuntimeException("参数类型错误 -> "+value);
+			}
+			return null;
 		}
 	}
 

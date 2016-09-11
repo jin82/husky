@@ -19,12 +19,14 @@ public class OperationTest {
 	public static final String BASE_PACKAGE = "jin.study.husky";
 
 	public static void main(String[] args) {
-		Dog dog = new Dog();
 		Map<String,String> properties = new HashMap<>();
-		properties.put(BASE_PACKAGE+".model.Dog.name","Foo");
-		BeanOperation operation = new BeanOperation(dog,properties);
+		properties.put("Dog.name","Foo");
+		properties.put("Dog.age","10");
+		properties.put("Dog.friend.name","Bar");
+		properties.put("Dog.friend.mouse.mouseName","mouse");
+		BeanOperation operation = new BeanOperation(BASE_PACKAGE+".model.Dog",properties);
 		
-		dog = (Dog)operation.gztResultBean();
-		System.out.println(dog.getName());
+		Dog dog = (Dog)operation.gztResultBean();
+		System.out.println(dog);
 	}
 }
