@@ -1,5 +1,7 @@
 package jin.study.husky.model;
 
+import jin.study.husky.annotations.Sofa;
+
 /**
  * \*
  * \* User: jin82
@@ -8,6 +10,7 @@ package jin.study.husky.model;
  * \* Description:
  * \
  */
+@Sofa
 public class Mouse {
 
 	private String mouseName;

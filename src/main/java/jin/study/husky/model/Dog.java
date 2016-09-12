@@ -1,5 +1,7 @@
 package jin.study.husky.model;
 
+import jin.study.husky.annotations.Sofa;
+
 /**
  * \*
  * \* User: jin82
@@ -8,6 +10,7 @@ package jin.study.husky.model;
  * \* Description:
  * \
  */
+@Sofa
 public class Dog {
 
 	private String name;
@@ -42,6 +45,6 @@ public class Dog {
 
 	@Override
 	public String toString() {
-		return "DOG -> [ name = " + name + " ,age = " + age + " ] " + friend.toString();
+		return "DOG -> [ name = " + name + " ,age = " + age + " ] " ;
 	}
 }
