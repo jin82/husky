@@ -13,7 +13,7 @@ import java.util.LinkedHashSet;
  * \* User: jin82
  * \* Date: 2016/09/12
  * \* Time: 20:25
- * \* Description:
+ * \* Description: Bone 也就是 class =。=
  * \
  */
 public class BoneFinder {
@@ -51,26 +51,47 @@ public class BoneFinder {
 			}
 
 			File filePath = new File(path);
-			exploreDir(filePath);
-
+			new Thread(new ExplorerRunable(filePath)).start();
 		}
 
 	}
 
+	/**
+	 * 注册所有的Bone
+	 * 已废弃
+	 * @see jin.study.husky.bean.BoneFinder.ExplorerRunable
+	 * @param parentDir 目标文件夹
+	 *
+	 */
+	@Deprecated
 	private void exploreDir(File parentDir){
 		for(File file : parentDir.listFiles()){
 			if(file.isDirectory()){
 				exploreDir(file);
 			}else{
 				String className = convertClassPath(file.getAbsolutePath());
-				boneName.add(className);
+				if(className != null){
+					System.out.println(className);
+					boneName.add(className);
+				}
 			}
 		}
 	}
 
+	//TODO 错误后返回null
 	private String convertClassPath(String filePath){
 		String tempPath = filePath.replaceAll("\\\\",".");
-		tempPath = tempPath.substring(tempPath.lastIndexOf(packagePath),tempPath.lastIndexOf(".class"));
+		if(!tempPath.endsWith(".class")){
+			return null;
+		}
+		try{
+			tempPath = tempPath.substring(tempPath.lastIndexOf(packagePath),tempPath.lastIndexOf(".class"));
+		}catch (Exception e){
+
+			e.printStackTrace();
+			throw new RuntimeException("filepath is -> " + filePath);
+		}
+
 		return tempPath;
 	}
 
@@ -81,6 +102,38 @@ public class BoneFinder {
 		BeanExplorer.container.forEach((key,value) -> {
 			System.out.printf("key -> %s , value -> %s%n", key, value);
 		});
+	}
+
+
+	/**
+	 * 多线程查找并注册Bone
+	 */
+	private class ExplorerRunable implements Runnable{
+
+		private File file;
+
+		public ExplorerRunable(File file){
+			this.file = file;
+		}
+
+		@Override
+		public void run() {
+			if(file.isDirectory()){
+				exploreDir(file);
+			}else{
+				String className = convertClassPath(file.getAbsolutePath());
+				if(className != null){
+					System.out.println(className);
+					boneName.add(className);
+				}
+			}
+		}
+
+		private void exploreDir(File parentDir){
+			for(File file : parentDir.listFiles()){
+				new Thread(new ExplorerRunable(file)).start();
+			}
+		}
 	}
 
 }
