@@ -1,8 +1,15 @@
 package jin.study.husky.bean;
 
+import jin.study.husky.exceptions.BeanException;
+import jin.study.husky.exceptions.enums.ExceptionEnums;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Map;
+
+import static jin.study.husky.exceptions.enums.ExceptionEnums.FIELD_ERROR;
+import static jin.study.husky.exceptions.enums.ExceptionEnums.INSTANCE_FAIL;
+import static jin.study.husky.exceptions.enums.ExceptionEnums.NO_SUCH_METHOD;
 
 /**
  * \*
@@ -40,7 +47,7 @@ public class BeanOperation {
 		try {
 			this.clazz = Class.forName(className);
 		} catch (ClassNotFoundException e) {
-			throw new RuntimeException("没有找到这个类 -> "+className);
+			throw new BeanException(ExceptionEnums.CLASS_NOT_FOUND,className);
 		}
 	}
 
@@ -52,7 +59,7 @@ public class BeanOperation {
 		try {
 			rootBean = this.clazz.newInstance();
 		} catch (InstantiationException | IllegalAccessException e) {
-			throw new RuntimeException("实例化出错 -> " + clazz);
+			throw new BeanException(INSTANCE_FAIL , clazz.getName());
 		}
 		properties.forEach(this::sztSingleField);
 		resultBean = sourceBean;
@@ -66,7 +73,7 @@ public class BeanOperation {
 	private void sztSingleField(String property,String value){
 		String keys[] = property.split("\\.");
 		if(keys.length == 0){
-			throw new RuntimeException("属性名称错误 ");
+			throw new BeanException(FIELD_ERROR);
 		}
 
 		for (int i = 0; i < keys.length; i++) {
@@ -93,7 +100,7 @@ public class BeanOperation {
 					sourceBean = nextBean;
 				}
 			}catch (Exception e){
-				throw new RuntimeException("属性值设置错误，调用 -> " + key +", e ->" + e);
+				throw new BeanException(FIELD_ERROR,"调用 -> " + key +", e ->" + e);
 			}
 
 		}
@@ -129,12 +136,12 @@ public class BeanOperation {
 		 * @return getter方法
 		 */
 		private Method getterMethod(){
+			String methodName = "get" + toUpperCaseFirst(fieldName);
 			try{
-				String methodName = "get" + toUpperCaseFirst(fieldName);
 				return sourceBean.getClass().getDeclaredMethod(methodName);
 			}catch (NoSuchMethodException e){
 				e.printStackTrace();
-				throw new RuntimeException();
+				throw new BeanException(NO_SUCH_METHOD,methodName);
 			}
 		}
 
@@ -146,7 +153,7 @@ public class BeanOperation {
 			try {
 				return sourceBean.getClass().getDeclaredField(fieldName).getType();
 			} catch (NoSuchFieldException e) {
-				throw new RuntimeException("没有 "+ fieldName+ "此field");
+				throw new BeanException(FIELD_ERROR, fieldName);
 			}
 		}
 
@@ -159,7 +166,7 @@ public class BeanOperation {
 			try{
 				return sourceBean.getClass().getDeclaredMethod(methodName, new Class<?>[]{gztFieldType()});
 			}catch (NoSuchMethodException e){
-				throw new RuntimeException("没有 " +methodName +" 方法");
+				throw new BeanException(NO_SUCH_METHOD,methodName);
 			}
 		}
 
@@ -186,7 +193,7 @@ public class BeanOperation {
 					return Integer.parseInt(value);
 				}
 			}catch (Exception e){
-				throw new RuntimeException("参数类型错误 -> "+value);
+				throw new BeanException("参数类型错误",value);
 			}
 			return null;
 		}

@@ -123,7 +123,9 @@ public class BoneFinder {
 			}else{
 				String className = convertClassPath(file.getAbsolutePath());
 				if(className != null){
-					System.out.println(className);
+					if(BeanSwitch.isDug){
+						System.out.println(className);
+					}
 					boneName.add(className);
 				}
 			}

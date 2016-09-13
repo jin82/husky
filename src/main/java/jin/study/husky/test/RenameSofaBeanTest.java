@@ -1,7 +1,5 @@
 package jin.study.husky.test;
 
-import jin.study.husky.annotations.Sofa;
-
 /**
  * \*
  * \* User: jin82
@@ -10,7 +8,7 @@ import jin.study.husky.annotations.Sofa;
  * \* Description:
  * \
  */
-@Sofa("RenameSofa")
+
 public class RenameSofaBeanTest {
 	@Override
 	public String toString() {

@@ -1,9 +1,16 @@
 package jin.study.husky.bean;
 
+import jin.study.husky.annotations.Bite;
 import jin.study.husky.annotations.Sofa;
+import jin.study.husky.exceptions.BeanException;
+import jin.study.husky.exceptions.enums.ExceptionEnums;
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.reflect.Field;
 import java.util.LinkedHashMap;
+
+import static jin.study.husky.exceptions.enums.ExceptionEnums.INSTANCE_FAIL;
+import static jin.study.husky.exceptions.enums.ExceptionEnums.Inject_BEAN_MISS;
 
 /**
  * \*
@@ -19,6 +26,8 @@ public class BeanExplorer {
 
 	private BoneFinder finder;
 
+	private BeanInjecter injecter = new BeanInjecter();
+
 	public BeanExplorer(String basePackage){
 		finder = new BoneFinder(basePackage);
 		refresh();
@@ -27,6 +36,7 @@ public class BeanExplorer {
 	public void refresh(){
 		finder.findBone();
 		finder.boneName.forEach(this::initializeBean);
+		injecter.inject();
 	}
 
 	private void initializeBean (String className){
@@ -35,7 +45,7 @@ public class BeanExplorer {
 			source = Thread.currentThread().getContextClassLoader().loadClass(className);
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
-			throw new RuntimeException();
+			throw new BeanException(ExceptionEnums.CLASS_NOT_FOUND,className);
 		}
 		Sofa sofa = source.getAnnotation(Sofa.class);
 		if(sofa == null){
@@ -55,7 +65,7 @@ public class BeanExplorer {
 			sofaBean = source.newInstance();
 		} catch (InstantiationException | IllegalAccessException e) {
 			e.printStackTrace();
-			throw new RuntimeException();
+			throw new BeanException(INSTANCE_FAIL,beanName);
 		}
 
 		container.put(beanName,sofaBean);
@@ -69,4 +79,51 @@ public class BeanExplorer {
 		});
 	}
 
+	/**
+	 * \*
+	 * \* User: jin82
+	 * \* Date: 2016/09/13
+	 * \* Time: 14:15
+	 * \* Description: bean参数注入
+	 * \
+	 */
+	private class BeanInjecter {
+
+		public void inject(){
+
+			container.forEach((k,v)->{
+
+				Object bean = v;
+				for (Field field : v.getClass().getDeclaredFields()) {
+					Bite bite = field.getAnnotation(Bite.class);
+					if(bite == null){
+						continue;
+					}
+
+					field.setAccessible(true);
+					Object sofa;
+					if(StringUtils.isBlank(bite.value())){
+						sofa = container.get(field.getType().getName());
+					}else{
+						sofa = container.get(bite.value());
+					}
+
+					if(sofa == null){
+						throw new BeanException(Inject_BEAN_MISS,field.getName());
+					}
+
+					try {
+						field.set(bean,sofa);
+					} catch (IllegalAccessException e) {
+						e.printStackTrace();
+					}
+
+
+				}
+			});
+
+		}
+
+
+	}
 }
