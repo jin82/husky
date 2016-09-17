@@ -26,7 +26,7 @@ public class OperationTest {
 		properties.put("Dog.friend.mouse.mouseName","mouse");
 		BeanOperation operation = new BeanOperation(BASE_PACKAGE+".model.Dog",properties);
 		
-		Dog dog = (Dog)operation.gztResultBean();
+		Dog dog = operation.gztResultBean();
 		System.out.println(dog);
 	}
 }

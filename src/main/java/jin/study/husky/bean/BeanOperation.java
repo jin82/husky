@@ -112,11 +112,11 @@ public class BeanOperation {
 	 * 将属性设置在对象上，并返回对象
 	 * @return 操作后的对象
 	 */
-	public Object gztResultBean(){
+	public <T> T gztResultBean(){
 		if (resultBean == null) {
 			handleBean();
 		}
-		return resultBean;
+		return (T)resultBean;
 	}
 
 	/**
@@ -164,7 +164,7 @@ public class BeanOperation {
 		private Method setterMethod(){
 			String methodName = "set" + toUpperCaseFirst(fieldName);
 			try{
-				return sourceBean.getClass().getDeclaredMethod(methodName, new Class<?>[]{gztFieldType()});
+				return sourceBean.getClass().getDeclaredMethod(methodName, gztFieldType());
 			}catch (NoSuchMethodException e){
 				throw new BeanException(NO_SUCH_METHOD,methodName);
 			}
